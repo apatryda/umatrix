@@ -1,6 +1,6 @@
 __version__ = "1.1.3"
 
-from typing import overload
+from typing import Iterable, overload
 
 def eye(order: int):
     return matrix(*[[int(i == j) for j in range(order)] for i in range(order)])
@@ -58,7 +58,10 @@ class matrix:
         return s
     @property
     def cols(self):
-        return [[row[i] for row in self.rows] for i in range(len(self.rows[0]))]
+        return list(self.icols)
+    @property
+    def icols(self) -> Iterable[list[float | int]]:
+        return zip(*self.rows)
     @property
     def shape(self):
         return len(self.rows), len(self.rows[0])
