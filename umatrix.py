@@ -128,6 +128,22 @@ class matrix:
     def __isub__(self, other):
         self.rows = self.__sub__(other).rows
         return self
+    def qmul(self, other):
+        assert isinstance(other, matrix) or typecheck(other), "Cannot multiply matrix and {}.".format(type(other))
+        rows = self.rows
+        if isinstance(other, matrix):
+            assert len(rows[0]) == len(other.rows), "Incompatible matrix sizes {} and {}.".format(self.shape, other.shape)
+            return matrix(
+                *(
+                    [
+                        sum(
+                            a * b for a, b in zip(row, col)
+                        # ) for col in other.cols
+                        ) for col in zip(*other.rows)
+                    ] for row in rows
+                )
+            )
+        return matrix(*((rows[i][j]*other for j in range(len(rows[0]))) for i in range(len(rows))))
     def __mul__(self, other):
         assert isinstance(other, matrix) or typecheck(other), "Cannot multiply matrix and {}.".format(type(other))
         rows = self.rows
