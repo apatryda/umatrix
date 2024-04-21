@@ -1,6 +1,6 @@
 __version__ = "1.1.3"
 
-from typing import Iterable, overload
+# from typing import Iterable, overload
 
 def eye(order: int):
     return matrix(*[[int(i == j) for j in range(order)] for i in range(order)])
@@ -15,10 +15,10 @@ def zeros(order: int, num_cols: int | None=None):
 def ones(order: int, num_cols: int | None=None):
     return fill(1, order, num_cols)
 
-@overload
-def _round(v: float | int, places=0) -> int: ...
-@overload
-def _round(v: complex, places=0) -> complex: ...
+# @overload
+# def _round(v: float | int, places=0) -> int: ...
+# @overload
+# def _round(v: complex, places=0) -> complex: ...
 def _round(v: float | int | complex, places=0) -> int | complex:
     if not isinstance(v, complex):
         return round(v, places)
@@ -57,10 +57,10 @@ class matrix:
             s += ",\n" if i != shape[0]-1 else "]"
         return s
     @property
-    def cols(self):
+    def cols(self) -> list[list[float | int]]:
         return list(self.icols)
     @property
-    def icols(self) -> Iterable[list[float | int]]:
+    def icols(self): # Iterable[list[float | int]]:
         return zip(*self.rows)
     @property
     def shape(self):
@@ -156,12 +156,12 @@ class matrix:
             return result
     def __abs__(self):
         return self.det
-    @overload
-    def __getitem__(self, index: int) -> list[float | int]: ...
-    @overload
-    def __getitem__(self, index: slice) -> list[list[float | int]]: ...
-    @overload
-    def __getitem__(self, index: tuple[int | slice, int | slice]) -> "matrix": ...
+    # @overload
+    # def __getitem__(self, index: int) -> list[float | int]: ...
+    # @overload
+    # def __getitem__(self, index: slice) -> list[list[float | int]]: ...
+    # @overload
+    # def __getitem__(self, index: tuple[int | slice, int | slice]) -> "matrix": ...
     def __getitem__(self, index: int | slice | tuple[int | slice, int | slice]) -> "list[float | int] | list[list[float | int]] | matrix":
         if isinstance(index, tuple):
             i_y, i_x = index
