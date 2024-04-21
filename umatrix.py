@@ -1,5 +1,6 @@
 __version__ = "1.1.3"
 
+import cmath
 # from typing import Iterable, overload
 
 def eye(order: int):
@@ -88,7 +89,7 @@ class matrix:
             return matrix(*[[_round(rows[i][j],places) for j in range(len(rows[0]))] for i in range(len(rows))])
         for i in range(len(rows)):
             for j in range(len(rows[0])):
-                self.rows[i][j] = _round(rows[i][j],places)
+                self.rows[i][j] = cmath.polar(_round(rows[i][j], places))[0] if isinstance(rows[i][j], complex) else round(rows[i][j], places)
     def __eq__(self, other):
         assert isinstance(other, matrix), "Cannot compare matrix and {}.".format(type(other))
         rows = self.rows
@@ -162,16 +163,19 @@ class matrix:
     # def __getitem__(self, index: slice) -> list[list[float | int]]: ...
     # @overload
     # def __getitem__(self, index: tuple[int | slice, int | slice]) -> "matrix": ...
-    def __getitem__(self, index: int | slice | tuple[int | slice, int | slice]) -> "list[float | int] | list[list[float | int]] | matrix":
-        if isinstance(index, tuple):
-            i_y, i_x = index
-            if isinstance(i_y, slice):
-                if isinstance(i_x, slice):
-                    return matrix(*(row[i_x] for row in self.rows[i_y]))
-                return matrix(*([row[i_x]] for row in self.rows[i_y]))
-            elif isinstance(i_x, slice):
-                return matrix(self.rows[i_y][i_x])
-            return matrix([self.rows[i_y][i_x]])
+    def __getitem__(self, index: int | slice | tuple[int | slice, int | slice]) -> list[float | int]:
+        # if isinstance(index, tuple):
+        #     i_y, i_x = index
+        #     if isinstance(i_y, slice):
+        #         if isinstance(i_x, slice):
+        #             return matrix(*(row[i_x] for row in self.rows[i_y]))
+        #         return matrix(*([row[i_x]] for row in self.rows[i_y]))
+        #     elif isinstance(i_x, slice):
+        #         return matrix(self.rows[i_y][i_x])
+        #     return matrix([self.rows[i_y][i_x]])
+        # return self.rows[index]
+        if not isinstance(index, int):
+            raise TypeError("Index must be an int; slices and tuples of int/slice are not supported.")
         return self.rows[index]
     def __setitem__(self, *args):
         sub = args[1]
