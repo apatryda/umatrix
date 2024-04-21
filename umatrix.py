@@ -1,19 +1,27 @@
 __version__ = "1.1.3"
 
-def eye(order):
+from typing import overload
+
+# pylint: disable=bad-indentation
+
+def eye(order: int):
 	return matrix(*[[int(i == j) for j in range(order)] for i in range(order)])
 
-def fill(x, order, num_cols=None):
+def fill(x: float | int, order: int, num_cols: int | None=None):
 	num_cols = num_cols or order
 	return matrix(*[[x for _ in range(num_cols)] for __ in range(order)])
 
-def zeros(order, num_cols=None):
+def zeros(order: int, num_cols: int | None=None):
 	return fill(0, order, num_cols)
 
-def ones(order, num_cols=None):
+def ones(order: int, num_cols: int | None=None):
 	return fill(1, order, num_cols)
 
-def _round(v, places=0):
+@overload
+def _round(v: float | int, places=0) -> int: ...
+@overload
+def _round(v: complex, places=0) -> complex: ...
+def _round(v: float | int | complex, places=0) -> int | complex:
 	if not isinstance(v, complex):
 		return round(v, places)
 	return round(v.real, places) + round(v.imag, places) * 1j
@@ -22,6 +30,7 @@ def typecheck(val):
 	return isinstance(val, int) or isinstance(val, float) or isinstance(val, complex)
 
 class matrix:
+	rows: list[list[float | int]]
 	def __init__(self, *content, are_rows=True):
 		assert all([typecheck(x) for y in content for x in y]), "Not all coefficients are of type int, float, or complex."
 		assert all([len(entry) == len(content[0]) for entry in content]), "Given {} do not have the same length.".format("rows" if are_rows else "columns")
@@ -73,8 +82,8 @@ class matrix:
 	def copy(self):
 		return matrix(*[[self.rows[i][j] for j in range(len(self.rows[0]))] for i in range(len(self.rows))])
 	def round(self, places=0, inplace=False):
+		rows = self.rows
 		if not inplace:
-			rows = self.rows
 			return matrix(*[[_round(rows[i][j],places) for j in range(len(rows[0]))] for i in range(len(rows))])
 		for i in range(len(rows)):
 			for j in range(len(rows[0])):
@@ -105,7 +114,7 @@ class matrix:
 	def __radd__(self, other):
 		return self.__add__(other)
 	def __iadd__(self, other):
-		self = self.__add__(other)
+		self.rows = self.__add__(other).rows
 		return self
 	def __sub__(self, other):
 		assert isinstance(other, matrix), "Cannot subtract {} from matrix.".format(type(other))
@@ -116,7 +125,7 @@ class matrix:
 	def __rsub__(self, other):
 		return other.__sub__(self)
 	def __isub__(self, other):
-		self = self.__sub__(other)
+		self.rows = self.__sub__(other).rows
 		return self
 	def __mul__(self, other):
 		assert isinstance(other, matrix) or typecheck(other), "Cannot multiply matrix and {}.".format(type(other))
@@ -128,31 +137,41 @@ class matrix:
 	def __rmul__(self, other):
 		return other.__mul__(self) if isinstance(other, matrix) else self.__mul__(other)
 	def __imul__(self, other):
-		self = self.__mul__(other)
+		self.rows = self.__mul__(other).rows
 		return self
-	def __pow__(self, exponent):
-		assert isinstance(exponent, int), "Exponent must be an int, cannot be {}.".format(type(exponent))
-		if exponent < 0:
-			return self.copy() if not exponent%2 else self.inverse()
-		if not exponent:
+	def __pow__(self, exponent: float | int) -> "matrix":
+		if not isinstance(exponent, int):
+			raise TypeError("Exponent must be an int, cannot be {}.".format(type(exponent)))
+		elif exponent < 0:
+			return self.inverse ** -exponent
+		elif exponent == 0:
 			return eye(self.order)
-		result = self.copy()
-		for i in range(1, exponent):
-			result *= self
-		return result
+		elif exponent == 1:
+			return self.copy()
+		else:
+			result: matrix = self * self
+			for _ in range(2, exponent):
+				result *= self
+			return result
 	def __abs__(self):
 		return self.det
-	def __getitem__(self, *args):
-		if isinstance(args[0], tuple):
-			a00, a01, rows = args[0][0], args[0][1], self.rows
-			if isinstance(a00, slice):
-				if isinstance(a01, slice):
-					return matrix(*[row[a01] for row in rows[a00]])
-				return matrix(*[[row[a01]] for row in rows[a00]])
-			elif isinstance(a01, slice):
-				return matrix(*[row[a01] for row in [rows[a00]]])
-			return matrix(*[[row[a01]] for row in [rows[a00]]])
-		return self.rows[args[0]]
+	@overload
+	def __getitem__(self, index: int) -> list[float | int]: ...
+	@overload
+	def __getitem__(self, index: slice) -> list[list[float | int]]: ...
+	@overload
+	def __getitem__(self, index: tuple[int | slice, int | slice]) -> "matrix": ...
+	def __getitem__(self, index: int | slice | tuple[int | slice, int | slice]) -> "list[float | int] | list[list[float | int]] | matrix":
+		if isinstance(index, tuple):
+			i_y, i_x = index
+			if isinstance(i_y, slice):
+				if isinstance(i_x, slice):
+					return matrix(*(row[i_x] for row in self.rows[i_y]))
+				return matrix(*([row[i_x]] for row in self.rows[i_y]))
+			elif isinstance(i_x, slice):
+				return matrix(self.rows[i_y][i_x])
+			return matrix([self.rows[i_y][i_x]])
+		return self.rows[index]
 	def __setitem__(self, *args):
 		sub = args[1]
 		if isinstance(args[0], tuple):
@@ -218,7 +237,7 @@ class matrix:
 			return a*(f*k*p+j*o*h+n*g*l - n*k*h-f*o*l-j*g*p) - b*(e*k*p+i*o*h+m*g*l - m*k*h-e*o*l-i*g*p) + c*(e*j*p+i*n*h+m*f*l - m*j*h-e*n*l-i*f*p) - d*(e*j*o+i*n*g+m*f*k - m*j*g-e*n*k-i*f*o)
 		raise NotImplementedError("Can't handle matrices > 4x4.")
 	@property
-	def inverse(self):
+	def inverse(self) -> "matrix":
 		rows = self.rows
 		order = len(rows)
 		assert order == len(rows[0]), "Matrix must be square."
